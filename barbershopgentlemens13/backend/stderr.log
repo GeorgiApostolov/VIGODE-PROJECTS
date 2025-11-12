@@ -1,0 +1,262 @@
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+node:internal/modules/esm/resolve:1204
+    throw error;
+    ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:347:53)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:407:11)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:333:34)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:320:11) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v20.19.4
+(node:381476) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(email) verifySmtp skipped: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+(node:384209) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(email) verifySmtp skipped: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+(node:448022) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(email) verifySmtp skipped: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+(node:453754) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(email) verifySmtp skipped: Cannot find package 'nodemailer' imported from /home/vigoqqvt/barbershopgentlemens13.com/backend/email.js
+(node:454897) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:522668) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:601757) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:649483) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:712865) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:787125) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:860562) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:956737) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:982691) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:983501) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1000726) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
