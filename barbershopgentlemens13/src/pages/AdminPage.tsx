@@ -23,7 +23,8 @@ type TabType =
   | "schedule"
   | "manual-booking"
   | "gallery"
-  | "before-after";
+  | "before-after"
+  | "news";
 
 function getBarberName(b: any, barbersMap: Record<string, Barber>) {
   if (!b) return "—";
@@ -95,6 +96,12 @@ export function AdminPage() {
     service: "",
   });
 
+  const [newsText, setNewsText] = useState("");
+  const [newsStartDate, setNewsStartDate] = useState("");
+  const [newsEndDate, setNewsEndDate] = useState("");
+  const [newsList, setNewsList] = useState<any[]>([]);
+  const [loadingNews, setLoadingNews] = useState(false);
+
   const [quickBookModalOpen, setQuickBookModalOpen] = useState(false);
   const [quickBookData, setQuickBookData] = useState({
     fullName: "",
@@ -107,65 +114,37 @@ export function AdminPage() {
 
   const [newBookingsCount, setNewBookingsCount] = useState(0);
   const previousBookingsRef = useRef<Booking[]>([]);
-  const notificationSoundRef = useRef<(() => void) | null>(null);
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Създаваме звуков обект при mount
   useEffect(() => {
-    // Създаваме приятен notification sound с Web Audio API
-    const playNotificationSound = () => {
-      try {
-        const audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+    // Използваме простичък beep звук (може да замениш с /notification.mp3)
+    const audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
 
-        // First tone
-        const oscillator1 = audioContext.createOscillator();
-        const gainNode1 = audioContext.createGain();
+    notificationSoundRef.current = {
+      play: () => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-        oscillator1.connect(gainNode1);
-        gainNode1.connect(audioContext.destination);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-        oscillator1.frequency.value = 800;
-        oscillator1.type = "sine";
+        oscillator.frequency.value = 800; // Frequency in Hz
+        oscillator.type = "sine";
 
-        gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode1.gain.exponentialRampToValueAtTime(
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(
           0.01,
-          audioContext.currentTime + 0.1
+          audioContext.currentTime + 0.5
         );
 
-        oscillator1.start(audioContext.currentTime);
-        oscillator1.stop(audioContext.currentTime + 0.1);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
 
-        // Second tone (higher pitch)
-        const oscillator2 = audioContext.createOscillator();
-        const gainNode2 = audioContext.createGain();
-
-        oscillator2.connect(gainNode2);
-        gainNode2.connect(audioContext.destination);
-
-        oscillator2.frequency.value = 1000;
-        oscillator2.type = "sine";
-
-        gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
-        gainNode2.gain.exponentialRampToValueAtTime(
-          0.01,
-          audioContext.currentTime + 0.3
-        );
-
-        oscillator2.start(audioContext.currentTime + 0.15);
-        oscillator2.stop(audioContext.currentTime + 0.3);
-
-        console.log("🔔 Playing notification sound");
-      } catch (err) {
-        console.error("Failed to play notification sound:", err);
-      }
-    };
-
-    notificationSoundRef.current = playNotificationSound;
-
-    return () => {
-      notificationSoundRef.current = null;
-    };
+        return Promise.resolve();
+      },
+    } as any;
   }, []);
 
   useEffect(() => {
@@ -192,6 +171,12 @@ export function AdminPage() {
 
     return () => clearInterval(interval);
   }, [isAuthenticated, filterStatus, filterBarber]);
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === "news") {
+      fetchNews();
+    }
+  }, [isAuthenticated, activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -236,9 +221,9 @@ export function AdminPage() {
 
         if (newBookings.length > 0) {
           // Свири звук
-          if (notificationSoundRef.current) {
-            notificationSoundRef.current();
-          }
+          notificationSoundRef.current
+            ?.play()
+            .catch((err) => console.log("Audio play failed:", err));
 
           // Показва notification
           setNewBookingsCount(newBookings.length);
@@ -346,6 +331,32 @@ export function AdminPage() {
     }
   };
 
+  const handleDelete = async (bookingId: string) => {
+    if (!confirm("Сигурни ли сте, че искате да изтриете тази заявка?")) {
+      return;
+    }
+
+    try {
+      await api.deleteBooking(bookingId);
+      alert("Заявката е изтрита успешно!");
+      fetchBookings();
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      alert("Грешка при изтриване на заявката");
+    }
+  };
+
+  const handleComplete = async (bookingId: string) => {
+    try {
+      await api.completeBooking(bookingId);
+      alert("Заявката е маркирана като завършена!");
+      fetchBookings();
+    } catch (error) {
+      console.error("Error completing booking:", error);
+      alert("Грешка при маркиране на заявката");
+    }
+  };
+
   const openRescheduleModal = (bookingId: string) => {
     setRescheduleBookingId(bookingId);
     setRescheduleModalOpen(true);
@@ -367,23 +378,6 @@ export function AdminPage() {
     } catch (error) {
       console.error("Error rescheduling booking:", error);
       alert("Грешка при пренасрочване");
-    }
-  };
-
-  const handleDeleteBooking = async (bookingId: string, fullName: string) => {
-    if (
-      !confirm(`Сигурен ли си че искаш да изтриеш заявката на ${fullName}?`)
-    ) {
-      return;
-    }
-
-    try {
-      await api.deleteBooking(bookingId);
-      alert("Заявката е успешно изтрита!");
-      fetchBookings();
-    } catch (error) {
-      console.error("Error deleting booking:", error);
-      alert("Грешка при изтриване на заявката");
     }
   };
 
@@ -430,6 +424,58 @@ export function AdminPage() {
       service: "Подстрижка",
     });
     setQuickBookModalOpen(true);
+  };
+
+  const fetchNews = async () => {
+    try {
+      setLoadingNews(true);
+      const data = await api.getAllNews();
+      setNewsList(data);
+    } catch (error) {
+      console.error("Error fetching news:", error);
+    } finally {
+      setLoadingNews(false);
+    }
+  };
+
+  const handleCreateNews = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsText || !newsStartDate || !newsEndDate) {
+      alert("Моля, попълнете всички полета");
+      return;
+    }
+
+    try {
+      await api.createNews({
+        text: newsText,
+        startDate: newsStartDate,
+        endDate: newsEndDate,
+        active: true,
+      });
+      alert("Новината е добавена успешно!");
+      setNewsText("");
+      setNewsStartDate("");
+      setNewsEndDate("");
+      fetchNews();
+    } catch (error) {
+      console.error("Error creating news:", error);
+      alert("Грешка при добавяне на новина");
+    }
+  };
+
+  const handleDeleteNews = async (id: string) => {
+    if (!confirm("Сигурни ли сте, че искате да изтриете тази новина?")) {
+      return;
+    }
+
+    try {
+      await api.deleteNews(id);
+      alert("Новината е изтрита успешно!");
+      fetchNews();
+    } catch (error) {
+      console.error("Error deleting news:", error);
+      alert("Грешка при изтриване на новина");
+    }
   };
 
   const handleQuickBook = async (e: React.FormEvent) => {
@@ -606,23 +652,7 @@ export function AdminPage() {
       <Header />
 
       <div className="pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">Admin Panel</h1>
-
-          {/* Test Sound Button */}
-          <button
-            onClick={() => {
-              if (notificationSoundRef.current) {
-                notificationSoundRef.current();
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors"
-            title="Тествай sound notification"
-          >
-            <Bell className="w-4 h-4" />
-            Тест звук
-          </button>
-        </div>
+        <h1 className="text-4xl font-bold text-white mb-8">Admin Panel</h1>
 
         <div className="flex space-x-2 mb-8 border-b border-neutral-800">
           <button
@@ -679,6 +709,16 @@ export function AdminPage() {
             }`}
           >
             Преди/След
+          </button>
+          <button
+            onClick={() => setActiveTab("news")}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === "news"
+                ? "text-red-600 border-b-2 border-red-600"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            Новини
           </button>
         </div>
 
@@ -844,6 +884,14 @@ export function AdminPage() {
                             Избери нов час
                           </button>
                         )}
+
+                        <button
+                          onClick={() => handleDelete(booking._id)}
+                          className="flex items-center justify-center bg-neutral-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+                          title="Изтрий заявка"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -976,48 +1024,25 @@ export function AdminPage() {
             </div>
 
             {(() => {
-              // Генерираме часове динамично според барбъра
-              const generateTimeSlotsForBarber = (
-                barberId: string,
-                date: string
-              ) => {
-                const barber = barbers[barberId];
-                if (!barber) return [];
+              // Проверяваме дали избраната дата е сряда
+              const selectedDate = new Date(scheduleDate + "T00:00");
+              const isWednesday = selectedDate.getDay() === 3;
 
-                const workHours = (barber as any).workHours || {
-                  start: 8,
-                  end: 20,
-                  lunchBreak: true,
-                };
-                const selectedDate = new Date(`${date}T00:00`);
-                const dayOfWeek = selectedDate.getDay();
+              // Генерираме часове като в booking формата
+              const allTimeSlots: string[] = [];
+              const startHour = isWednesday ? 12 : 8;
+              const endHour = 20;
 
-                let startHour = workHours.start;
-                const endHour = workHours.end;
-                const lunchBreak = workHours.lunchBreak;
-
-                // Ако е сряда и има специален начален час
-                if (dayOfWeek === 3 && workHours.wednesdayStart !== undefined) {
-                  startHour = workHours.wednesdayStart;
+              for (let hour = startHour; hour < endHour; hour++) {
+                for (let minute = 0; minute < 60; minute += 15) {
+                  // В сряда няма обедна пауза, в други дни пропускаме 13:00
+                  if (!isWednesday && hour === 13) continue;
+                  const time = `${hour.toString().padStart(2, "0")}:${minute
+                    .toString()
+                    .padStart(2, "0")}`;
+                  allTimeSlots.push(time);
                 }
-
-                const slots: string[] = [];
-                for (let hour = startHour; hour < endHour; hour++) {
-                  for (let minute = 0; minute < 60; minute += 15) {
-                    if (lunchBreak && hour === 13) continue; // обедна пауза
-                    const time = `${hour.toString().padStart(2, "0")}:${minute
-                      .toString()
-                      .padStart(2, "0")}`;
-                    slots.push(time);
-                  }
-                }
-                return slots;
-              };
-
-              const allTimeSlots =
-                scheduleBarber !== "all"
-                  ? generateTimeSlotsForBarber(scheduleBarber, scheduleDate)
-                  : [];
+              }
 
               const filteredBookings = bookings.filter((b) => {
                 const matchesDate = b.date === scheduleDate;
@@ -1027,7 +1052,11 @@ export function AdminPage() {
                     : (b.barberId as any)?._id;
                 const matchesBarber =
                   scheduleBarber === "all" || barberId === scheduleBarber;
-                return matchesDate && matchesBarber && b.status === "approved";
+                return (
+                  matchesDate &&
+                  matchesBarber &&
+                  ["pending", "approved", "completed"].includes(b.status)
+                );
               });
 
               // Ако е избран конкретен барбър и grid mode
@@ -1053,20 +1082,8 @@ export function AdminPage() {
                             return (
                               <div
                                 key={timeSlot}
-                                className="bg-red-900/30 border-2 border-red-700 rounded-lg p-3 text-center relative group"
+                                className="bg-red-900/30 border-2 border-red-700 rounded-lg p-3 text-center"
                               >
-                                <button
-                                  onClick={() =>
-                                    handleDeleteBooking(
-                                      booking._id,
-                                      booking.fullName
-                                    )
-                                  }
-                                  className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Изтрий заявка"
-                                >
-                                  <Trash2 className="w-3 h-3 text-white" />
-                                </button>
                                 <p className="text-red-400 font-bold text-sm mb-1">
                                   {timeSlot}
                                 </p>
@@ -1167,7 +1184,7 @@ export function AdminPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex gap-2">
                           {booking.photoUrl && (
                             <button
                               onClick={() =>
@@ -1179,15 +1196,21 @@ export function AdminPage() {
                               Снимка
                             </button>
                           )}
+                          {booking.status !== "completed" && (
+                            <button
+                              onClick={() => handleComplete(booking._id)}
+                              className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                              title="Маркирай като завършена"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
-                            onClick={() =>
-                              handleDeleteBooking(booking._id, booking.fullName)
-                            }
-                            className="flex items-center justify-center bg-red-900 hover:bg-red-800 text-white px-4 py-2 rounded-lg transition-colors"
+                            onClick={() => handleDelete(booking._id)}
+                            className="flex items-center justify-center bg-neutral-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
                             title="Изтрий заявка"
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Изтрий
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -1763,6 +1786,142 @@ export function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* News Tab */}
+      {activeTab === "news" && (
+        <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-6">
+          <div className="flex items-center space-x-4 mb-6">
+            <Bell className="w-6 h-6 text-red-600" />
+            <h2 className="text-2xl font-bold text-white">
+              Управление на новини/алерти
+            </h2>
+          </div>
+
+          <form onSubmit={handleCreateNews} className="mb-8 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Текст на новината *
+              </label>
+              <textarea
+                value={newsText}
+                onChange={(e) => setNewsText(e.target.value)}
+                placeholder="Например: Барбершопът ще бъде затворен на 25.12.2025"
+                className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:border-red-600 focus:outline-none"
+                rows={3}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  От дата *
+                </label>
+                <input
+                  type="date"
+                  value={newsStartDate}
+                  onChange={(e) => setNewsStartDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-lg text-white focus:border-red-600 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  До дата *
+                </label>
+                <input
+                  type="date"
+                  value={newsEndDate}
+                  onChange={(e) => setNewsEndDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-lg text-white focus:border-red-600 focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Добави новина</span>
+            </button>
+          </form>
+
+          <div className="border-t-2 border-neutral-800 pt-6">
+            <h3 className="text-xl font-bold text-white mb-4">
+              Активни новини
+            </h3>
+
+            {loadingNews ? (
+              <div className="text-center text-neutral-400 py-8">
+                Зареждане...
+              </div>
+            ) : newsList.length === 0 ? (
+              <div className="text-center text-neutral-400 py-8">
+                Няма добавени новини
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {newsList.map((news) => {
+                  const today = new Date().toISOString().split("T")[0];
+                  const isActive =
+                    news.active &&
+                    news.startDate <= today &&
+                    news.endDate >= today;
+
+                  return (
+                    <div
+                      key={news._id}
+                      className={`bg-neutral-800 border-2 rounded-lg p-4 ${
+                        isActive
+                          ? "border-red-600"
+                          : "border-neutral-700 opacity-60"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            {isActive && (
+                              <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                                АКТИВНА
+                              </span>
+                            )}
+                            {!isActive && (
+                              <span className="bg-neutral-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                                НЕАКТИВНА
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-white font-medium mb-2">
+                            {news.text}
+                          </p>
+                          <p className="text-neutral-400 text-sm">
+                            От{" "}
+                            {new Date(news.startDate).toLocaleDateString(
+                              "bg-BG"
+                            )}{" "}
+                            до{" "}
+                            {new Date(news.endDate).toLocaleDateString("bg-BG")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteNews(news._id)}
+                          className="ml-4 bg-neutral-700 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                          title="Изтрий новина"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

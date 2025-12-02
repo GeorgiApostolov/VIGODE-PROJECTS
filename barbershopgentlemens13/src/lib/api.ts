@@ -3,17 +3,6 @@ export type Barber = {
   name: string;
   title?: string;
   image?: string;
-  schedule?: {
-    regular?: string;
-    wednesday?: string;
-    sunday?: string;
-  };
-  workHours?: {
-    start: number;
-    end: number;
-    wednesdayStart?: number;
-    lunchBreak: boolean;
-  };
 };
 export type Service = {
   _id: string;
@@ -55,11 +44,20 @@ export interface BeforeAfterItem {
   sortOrder?: number;
 }
 
+export interface News {
+  _id: string;
+  text: string;
+  startDate: string;
+  endDate: string;
+  active: boolean;
+  createdAt?: string;
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE || "/backend";
 
 function adminHeaders(): Record<string, string> {
   const token = localStorage.getItem("adminToken") || "";
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return token ? { "x-admin-token": token } : {};
 }
 
 function authHeaders(): Record<string, string> {
@@ -156,12 +154,21 @@ export const api = {
     return r.json();
   },
 
-  async deleteBooking(id: string): Promise<{ success: true }> {
+  async deleteBooking(id: string): Promise<{ ok: true }> {
     const r = await fetch(`${API_BASE}/bookings/${id}`, {
       method: "DELETE",
       headers: adminHeaders(),
     });
     if (!r.ok) throw new Error("delete failed");
+    return r.json();
+  },
+
+  async completeBooking(id: string): Promise<Booking> {
+    const r = await fetch(`${API_BASE}/bookings/${id}/complete`, {
+      method: "PATCH",
+      headers: adminHeaders(),
+    });
+    if (!r.ok) throw new Error("complete failed");
     return r.json();
   },
 
@@ -199,7 +206,7 @@ export const api = {
 
     const r = await fetch(`${API_BASE}/bookings/manual`, {
       method: "POST",
-      headers: adminHeaders(), // Use admin token for manual bookings
+      headers: authHeaders(), // Use auth token instead of admin token
       body: fd,
     });
     if (!r.ok) {
@@ -253,5 +260,41 @@ export const api = {
     const r = await fetch(`${API_BASE}/me`, { headers: { ...authHeaders() } });
     if (!r.ok) throw new Error("me failed");
     return r.json(); // { user, bookings }
+  },
+
+  // News
+  async getNews(): Promise<News[]> {
+    const r = await fetch(`${API_BASE}/news`);
+    if (!r.ok) throw new Error("get news failed");
+    return r.json();
+  },
+
+  async getAllNews(): Promise<News[]> {
+    const r = await fetch(`${API_BASE}/news/all`);
+    if (!r.ok) throw new Error("get all news failed");
+    return r.json();
+  },
+
+  async createNews(payload: {
+    text: string;
+    startDate: string;
+    endDate: string;
+    active?: boolean;
+  }): Promise<News> {
+    const r = await fetch(`${API_BASE}/news`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error("create news failed");
+    return r.json();
+  },
+
+  async deleteNews(id: string): Promise<{ ok: true }> {
+    const r = await fetch(`${API_BASE}/news/${id}`, {
+      method: "DELETE",
+    });
+    if (!r.ok) throw new Error("delete news failed");
+    return r.json();
   },
 };

@@ -1,0 +1,11 @@
+# robots.txt for barbershopgentlemens13.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://barbershopgentlemens13.com/sitemap.xml
+
+# Disallow admin and backend
+Disallow: /admin
+Disallow: /backend/

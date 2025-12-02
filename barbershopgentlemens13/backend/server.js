@@ -19,6 +19,7 @@ import Service from "./models/Service.js";
 import GalleryItem from "./models/GalleryItem.js";
 import BeforeAfterItem from "./models/BeforeAfterItem.js";
 import User from "./models/User.js"; // models/User.js трябва да има поле profilePhoto
+import News from "./models/News.js";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -102,10 +103,7 @@ mongoose.connection.on(
 
 if (MONGO_URI) {
   mongoose
-    .connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 5000, // Timeout след 5 секунди
-      socketTimeoutMS: 45000, // Timeout за socket след 45 секунди
-    })
+    .connect(MONGO_URI)
     .then(() => console.log("✅ MongoDB Connected"))
     .catch((err) => console.log("❌ MongoDB Error:", err.message));
 } else {
@@ -123,12 +121,6 @@ const BarberSchema = new mongoose.Schema(
       regular: String,
       wednesday: String,
       sunday: String,
-    },
-    workHours: {
-      start: { type: Number, default: 8 }, // Начален час (8 = 08:00)
-      end: { type: Number, default: 20 }, // Краен час (20 = 20:00)
-      wednesdayStart: { type: Number }, // Начален час в сряда (nullable)
-      lunchBreak: { type: Boolean, default: true }, // Пауза в 13:00
     },
   },
   { timestamps: true }
@@ -220,21 +212,6 @@ loadServices();
 setInterval(loadServices, 60_000);
 
 /* --------------------- Routes ------------------------- */
-// Admin middleware - check for hardcoded admin token
-function requireAdmin(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  const token = authHeader.replace("Bearer ", "");
-  if (token === "admin123") {
-    req.isAdmin = true;
-    return next();
-  }
-  // If not admin token, check if it's a valid user JWT
-  return requireAuth(req, res, next);
-}
-
 // Health
 app.get(`${BASE_PATH}`, (_req, res) => {
   res.status(200).send(`
@@ -273,7 +250,7 @@ app.get(`${BASE_PATH}/api/barbers`, async (_req, res, next) => {
   try {
     if (!MONGO_URI) return res.json([]);
     const docs = await Barber.find()
-      .select("name title schedule image workHours createdAt")
+      .select("name title schedule image createdAt")
       .sort({ createdAt: 1 })
       .lean();
 
@@ -283,7 +260,6 @@ app.get(`${BASE_PATH}/api/barbers`, async (_req, res, next) => {
       title: b.title,
       schedule: b.schedule,
       image: b.image || null,
-      workHours: b.workHours || { start: 8, end: 20, lunchBreak: true },
     }));
     res.json(barbers);
   } catch (e) {
@@ -291,45 +267,7 @@ app.get(`${BASE_PATH}/api/barbers`, async (_req, res, next) => {
   }
 });
 
-// Update barber work hours (admin only) - за миграция
-app.post(
-  `${BASE_PATH}/api/barbers/migrate-hours`,
-  requireAdmin,
-  async (_req, res, next) => {
-    try {
-      // Намери Иван и добави работните часове
-      const ivan = await Barber.findOne({
-        $or: [
-          { name: /иван/i },
-          { name: /ivan/i },
-          { _id: "690c9a836832a4d4a7087762" },
-        ],
-      });
-
-      if (ivan && !ivan.workHours) {
-        ivan.workHours = {
-          start: 8,
-          end: 20,
-          wednesdayStart: 12, // В сряда от 12:00
-          lunchBreak: true,
-        };
-        await ivan.save();
-      }
-
-      // Актуализирай всички останали барбъри с default часове ако нямат
-      await Barber.updateMany(
-        { workHours: { $exists: false } },
-        { $set: { workHours: { start: 8, end: 20, lunchBreak: true } } }
-      );
-
-      res.json({ success: true, message: "Work hours migrated" });
-    } catch (e) {
-      next(e);
-    }
-  }
-);
-
-// Bookings
+// Create booking + upload + email
 app.post(
   `${BASE_PATH}/api/bookings`,
   uploadBooking.single("photo"),
@@ -355,22 +293,24 @@ app.post(
       let photoUrl = null;
       if (req.file) {
         photoUrl = `${PUBLIC_BASE_URL}${BASE_PATH}/uploads/bookings/${req.file.filename}`;
-      } else if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-        // Ако няма качена снимка, но има userId, използвай профилната снимка
-        try {
-          const user = await User.findById(userId).lean();
-          if (user?.profilePhoto) {
-            photoUrl = user.profilePhoto;
-          }
-        } catch (err) {
-          console.log("Could not fetch user profile photo:", err);
-        }
       }
 
       // Convert userId string to ObjectId if present
       let userObjectId = null;
       if (userId && mongoose.Types.ObjectId.isValid(userId)) {
         userObjectId = new mongoose.Types.ObjectId(userId);
+
+        // If no photo uploaded but user is logged in, use their profile photo
+        if (!photoUrl) {
+          try {
+            const user = await User.findById(userObjectId).lean();
+            if (user?.profilePhoto) {
+              photoUrl = user.profilePhoto;
+            }
+          } catch (err) {
+            console.warn("Could not fetch user profile photo:", err.message);
+          }
+        }
       }
 
       const created = await Booking.create({
@@ -422,15 +362,9 @@ app.post(
 // Manual booking (admin only)
 app.post(
   `${BASE_PATH}/api/bookings/manual`,
-  requireAdmin,
   uploadBooking.single("photo"),
   async (req, res, next) => {
     try {
-      // Check if hardcoded admin or user with admin role
-      if (!req.isAdmin && !req.user?.isAdmin) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
-
       const {
         userId,
         fullName,
@@ -451,22 +385,24 @@ app.post(
       let photoUrl = null;
       if (req.file) {
         photoUrl = `${PUBLIC_BASE_URL}${BASE_PATH}/uploads/bookings/${req.file.filename}`;
-      } else if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-        // Ако няма качена снимка, но има userId, използвай профилната снимка
-        try {
-          const user = await User.findById(userId).lean();
-          if (user?.profilePhoto) {
-            photoUrl = user.profilePhoto;
-          }
-        } catch (err) {
-          console.log("Could not fetch user profile photo:", err);
-        }
       }
 
       // Convert userId string to ObjectId if present
       let userObjectId = null;
       if (userId && mongoose.Types.ObjectId.isValid(userId)) {
         userObjectId = new mongoose.Types.ObjectId(userId);
+
+        // If no photo uploaded but user is logged in, use their profile photo
+        if (!photoUrl) {
+          try {
+            const user = await User.findById(userObjectId).lean();
+            if (user?.profilePhoto) {
+              photoUrl = user.profilePhoto;
+            }
+          } catch (err) {
+            console.warn("Could not fetch user profile photo:", err.message);
+          }
+        }
       }
 
       const created = await Booking.create({
@@ -571,20 +507,31 @@ app.patch(`${BASE_PATH}/api/bookings/:id/reject`, async (req, res, next) => {
   }
 });
 
-// Delete booking (admin only)
-app.delete(
-  `${BASE_PATH}/api/bookings/:id`,
-  requireAdmin,
-  async (req, res, next) => {
-    try {
-      const booking = await Booking.findByIdAndDelete(req.params.id);
-      if (!booking) return res.status(404).json({ error: "Not found" });
-      res.json({ success: true, message: "Booking deleted" });
-    } catch (e) {
-      next(e);
-    }
+// Delete booking
+app.delete(`${BASE_PATH}/api/bookings/:id`, async (req, res, next) => {
+  try {
+    const booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) return res.status(404).json({ error: "Not found" });
+    res.json({ ok: true, message: "Booking deleted" });
+  } catch (e) {
+    next(e);
   }
-);
+});
+
+// Mark booking as completed
+app.patch(`${BASE_PATH}/api/bookings/:id/complete`, async (req, res, next) => {
+  try {
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      { status: "completed" },
+      { new: true }
+    );
+    if (!booking) return res.status(404).json({ error: "Not found" });
+    res.json(booking);
+  } catch (e) {
+    next(e);
+  }
+});
 
 /* -------------------- Gallery ------------------------- */
 app.get(`${BASE_PATH}/api/gallery`, async (req, res, next) => {
@@ -719,6 +666,58 @@ app.put(`${BASE_PATH}/api/before-after/:id`, async (req, res, next) => {
 app.delete(`${BASE_PATH}/api/before-after/:id`, async (req, res, next) => {
   try {
     await BeforeAfterItem.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ------------------ News/Alerts ----------------------- */
+// Get active news (public)
+app.get(`${BASE_PATH}/api/news`, async (req, res, next) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const activeNews = await News.find({
+      active: true,
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(activeNews);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Get all news (admin)
+app.get(`${BASE_PATH}/api/news/all`, async (req, res, next) => {
+  try {
+    const allNews = await News.find().sort({ createdAt: -1 }).lean();
+    res.json(allNews);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Create news
+app.post(`${BASE_PATH}/api/news`, async (req, res, next) => {
+  try {
+    const { text, startDate, endDate, active = true } = req.body;
+    if (!text || !startDate || !endDate) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    const news = await News.create({ text, startDate, endDate, active });
+    res.status(201).json(news);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Delete news
+app.delete(`${BASE_PATH}/api/news/:id`, async (req, res, next) => {
+  try {
+    await News.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch (e) {
     next(e);

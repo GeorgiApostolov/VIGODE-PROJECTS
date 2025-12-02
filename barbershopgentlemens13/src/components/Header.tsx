@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, LogIn, LogOut, UserCircle2 } from "lucide-react";
+import { Menu, X, LogIn, LogOut, UserCircle2, AlertCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import AuthModal from "./AuthModal";
+import { api, type News } from "../lib/api";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [news, setNews] = useState<News[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, openAuth, logout } = useAuth();
@@ -20,6 +22,19 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const fetchNews = async () => {
+    try {
+      const data = await api.getNews();
+      setNews(data);
+    } catch (error) {
+      console.error("Failed to fetch news:", error);
+    }
+  };
 
   const handleNavigation = (id: string) => {
     setIsMenuOpen(false);
@@ -54,10 +69,30 @@ export default function Header() {
 
   return (
     <>
+      {/* News Alert Banner */}
+      {news.length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-center space-x-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <div className="text-center">
+                {news.map((item, index) => (
+                  <p key={item._id} className="text-sm font-medium">
+                    {item.text}
+                    {index < news.length - 1 && " • "}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
+        className={`fixed left-0 right-0 z-40 transition-all duration-300 ${
           isScrolled ? "bg-black shadow-lg" : "bg-transparent"
         }`}
+        style={{ top: news.length > 0 ? "52px" : "0" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">

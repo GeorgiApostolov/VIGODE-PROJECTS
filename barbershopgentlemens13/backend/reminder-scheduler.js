@@ -1,41 +1,54 @@
 import mongoose from "mongoose";
 import cron from "node-cron";
 
-const MONGO_URI = process.env.MONGO_URI || "";
+// Use existing mongoose models from server.js (shared connection)
+let Booking, Barber;
 
-// Booking Schema - same as in server.js
-const BookingSchema = new mongoose.Schema(
-  {
-    userId: { type: String, default: null },
-    fullName: String,
-    email: String,
-    phone: String,
-    barberId: { type: mongoose.Schema.Types.ObjectId, ref: "Barber" },
-    date: String, // YYYY-MM-DD
-    time: String, // HH:mm
-    service: String,
-    comment: String,
-    photoUrl: String,
-    sendReminder: { type: Boolean, default: true },
-    reminderSent: { type: Boolean, default: false }, // Track if reminder already sent
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected", "completed"],
-      default: "pending",
-    },
-  },
-  { timestamps: true }
-);
+// Initialize models from existing mongoose connection
+function getModels() {
+  if (!Booking) {
+    Booking =
+      mongoose.models.Booking ||
+      mongoose.model(
+        "Booking",
+        new mongoose.Schema(
+          {
+            userId: { type: String, default: null },
+            fullName: String,
+            email: String,
+            phone: String,
+            barberId: { type: mongoose.Schema.Types.ObjectId, ref: "Barber" },
+            date: String,
+            time: String,
+            service: String,
+            comment: String,
+            photoUrl: String,
+            sendReminder: { type: Boolean, default: true },
+            reminderSent: { type: Boolean, default: false },
+            status: {
+              type: String,
+              enum: ["pending", "approved", "rejected", "completed"],
+              default: "pending",
+            },
+          },
+          { timestamps: true }
+        )
+      );
+  }
 
-const Booking =
-  mongoose.models.Booking || mongoose.model("Booking", BookingSchema);
+  if (!Barber) {
+    Barber =
+      mongoose.models.Barber ||
+      mongoose.model(
+        "Barber",
+        new mongoose.Schema({
+          name: String,
+        })
+      );
+  }
 
-// Barber Schema (for getting barber name)
-const BarberSchema = new mongoose.Schema({
-  name: String,
-  // other fields...
-});
-const Barber = mongoose.models.Barber || mongoose.model("Barber", BarberSchema);
+  return { Booking, Barber };
+}
 
 /** Dynamic import email functions to avoid crashes */
 async function withEmail(fnName, args) {
@@ -50,104 +63,201 @@ async function withEmail(fnName, args) {
 }
 
 /**
- * Check bookings and send reminders 2 hours before appointment
+ * Check if a booking needs a reminder (called periodically)
  */
-async function sendReminders() {
+async function checkAndSendReminders() {
   try {
-    const now = new Date();
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const { Booking, Barber } = getModels();
 
-    // Get today's date in YYYY-MM-DD format
-    const todayStr = now.toISOString().split("T")[0];
-    const twoHoursLaterStr = twoHoursLater.toISOString().split("T")[0];
-
-    // Time in HH:mm format (2 hours from now)
-    const targetHour = String(twoHoursLater.getHours()).padStart(2, "0");
-    const targetMinute = String(twoHoursLater.getMinutes()).padStart(2, "0");
-    const targetTime = `${targetHour}:${targetMinute}`;
-
-    // Find bookings that:
-    // 1. Are approved
-    // 2. Have sendReminder: true
-    // 3. Haven't sent reminder yet
-    // 4. Are scheduled for today or tomorrow (in case time passes midnight)
-    // 5. Match the target time (within same 15-min window)
+    // Find all approved bookings that haven't sent reminder yet
     const bookings = await Booking.find({
       status: "approved",
       sendReminder: true,
-      reminderSent: { $ne: true },
-      $or: [{ date: todayStr }, { date: twoHoursLaterStr }],
+      reminderSent: false,
     }).lean();
 
+    if (bookings.length === 0) {
+      console.log("✅ No pending reminders to check");
+      return;
+    }
+
+    console.log(`🔍 Checking ${bookings.length} booking(s) for reminders...`);
+
+    const now = new Date();
+
     for (const booking of bookings) {
-      // Parse booking datetime
-      const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
-      const timeDiff = bookingDateTime - now;
+      try {
+        // Parse booking datetime - локално българско време
+        const [year, month, day] = booking.date.split("-").map(Number);
+        const [hours, minutes] = booking.time.split(":").map(Number);
+        const bookingDateTime = new Date(
+          year,
+          month - 1,
+          day,
+          hours,
+          minutes,
+          0
+        );
 
-      // Send if within 2 hours window (between 1:45 and 2:15 hours)
-      if (
-        timeDiff >= 1.75 * 60 * 60 * 1000 &&
-        timeDiff <= 2.25 * 60 * 60 * 1000
-      ) {
+        // Calculate time until appointment
+        const timeUntilAppointment = bookingDateTime.getTime() - now.getTime();
+        const hoursUntilAppointment = timeUntilAppointment / (60 * 60 * 1000);
+
         console.log(
-          `📧 Sending reminder for booking ${booking._id} to ${booking.email}`
+          `📋 ${booking.fullName} - ${booking.date} ${
+            booking.time
+          } - ${hoursUntilAppointment.toFixed(2)}h remaining`
         );
 
-        // Get barber name
-        let barberName = "";
-        try {
-          const barber = await Barber.findById(booking.barberId).lean();
-          barberName = barber?.name || "";
-        } catch {}
+        // If appointment has passed, skip
+        if (timeUntilAppointment < 0) {
+          console.log(`  ⏭️ Appointment has passed, skipping`);
+          continue;
+        }
 
-        // Send reminder email
-        await withEmail("sendBookingReminder", {
-          customerEmail: booking.email,
-          fullName: booking.fullName,
-          date: booking.date,
-          time: booking.time,
-          service: booking.service,
-          barberName,
-        });
+        // If appointment is in 2 hours or less, send reminder NOW
+        if (hoursUntilAppointment <= 2) {
+          console.log(
+            `  📧 Sending reminder NOW (${hoursUntilAppointment.toFixed(
+              2
+            )}h remaining)`
+          );
 
-        // Mark as sent
-        await Booking.updateOne(
-          { _id: booking._id },
-          { $set: { reminderSent: true } }
-        );
+          // Get barber name
+          let barberName = "";
+          try {
+            const barber = await Barber.findById(booking.barberId).lean();
+            barberName = barber?.name || "";
+          } catch {}
 
-        console.log(`✅ Reminder sent for booking ${booking._id}`);
+          // Send reminder email
+          await withEmail("sendBookingReminder", {
+            customerEmail: booking.email,
+            fullName: booking.fullName,
+            date: booking.date,
+            time: booking.time,
+            service: booking.service,
+            barberName,
+          });
+
+          // Mark as sent
+          await Booking.updateOne(
+            { _id: booking._id },
+            { $set: { reminderSent: true } }
+          );
+
+          console.log(`  ✅ Reminder sent for booking ${booking._id}`);
+        } else {
+          console.log(
+            `  ⏰ Not yet time (will send when ${
+              hoursUntilAppointment.toFixed(2) - 2
+            }h pass)`
+          );
+        }
+      } catch (err) {
+        console.error(`  ❌ Error processing booking ${booking._id}:`, err);
       }
     }
   } catch (error) {
-    console.error("❌ Error sending reminders:", error);
+    console.error("❌ Error in checkAndSendReminders:", error);
   }
 }
 
 /**
- * Initialize reminder scheduler
+ * Legacy function - no longer used, kept for compatibility
  */
-export async function startReminderScheduler() {
-  try {
-    await mongoose.connect(MONGO_URI);
-    console.log("✅ Reminder scheduler: MongoDB connected");
+export async function scheduleReminder(bookingId) {
+  console.log(
+    `📌 scheduleReminder called for ${bookingId} (now using periodic checks)`
+  );
+}
 
-    // Run every 15 minutes (aligned with booking slots)
-    cron.schedule("*/15 * * * *", async () => {
-      console.log("🔔 Checking for appointment reminders...");
-      await sendReminders();
+/**
+ * Send reminder email for a booking
+ */
+async function sendReminderEmail(booking) {
+  // This function is no longer used - reminders sent directly in checkAndSendReminders
+  console.log(`⚠️ sendReminderEmail called (deprecated)`);
+}
+
+/**
+ * Auto-complete past bookings
+ */
+async function autoCompletePastBookings() {
+  try {
+    const { Booking } = getModels();
+    const now = new Date();
+    const currentDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`; // HH:mm
+
+    // Find all approved bookings that are in the past
+    const pastBookings = await Booking.find({
+      status: "approved",
+      $or: [
+        { date: { $lt: currentDate } }, // Date before today
+        {
+          date: currentDate,
+          time: { $lt: currentTime }, // Today but time has passed
+        },
+      ],
     });
 
-    console.log("✅ Reminder scheduler: Started (runs every 15 minutes)");
+    if (pastBookings.length > 0) {
+      // Update all to completed
+      await Booking.updateMany(
+        {
+          _id: { $in: pastBookings.map((b) => b._id) },
+        },
+        {
+          $set: { status: "completed" },
+        }
+      );
 
-    // Run immediately on startup
-    await sendReminders();
+      console.log(`✅ Auto-completed ${pastBookings.length} past booking(s)`);
+    }
   } catch (error) {
-    console.error("❌ Reminder scheduler failed to start:", error);
+    console.error("❌ Error auto-completing past bookings:", error);
   }
 }
 
-// If running as standalone script
-if (import.meta.url === `file://${process.argv[1]}`) {
-  startReminderScheduler();
+/**
+ * Re-schedule all pending reminders on server start
+ */
+async function rescheduleAllReminders() {
+  // No longer needed - periodic checks handle everything
+  console.log(
+    "✅ Using periodic reminder checks (no manual rescheduling needed)"
+  );
+}
+
+/**
+ * Initialize reminder scheduler
+ * NOTE: Uses shared mongoose connection from server.js
+ */
+export async function startReminderScheduler() {
+  try {
+    // Initialize models from existing connection
+    getModels();
+
+    console.log("✅ Reminder scheduler: Using shared MongoDB connection");
+
+    // Check and send reminders every 15 minutes
+    cron.schedule("*/15 * * * *", async () => {
+      console.log("🔔 Checking for reminders to send...");
+      await checkAndSendReminders();
+    });
+
+    console.log(
+      "✅ Reminder scheduler: Started (checks every 15 min for reminders)"
+    );
+
+    // Run checks immediately on startup
+    console.log("🚀 Running initial checks...");
+    await checkAndSendReminders();
+  } catch (error) {
+    console.error("❌ Reminder scheduler failed to start:", error);
+  }
 }

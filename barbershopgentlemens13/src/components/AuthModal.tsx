@@ -192,7 +192,7 @@ export default function AuthModal() {
             </div>
             <div>
               <label className="mb-2 block text-sm text-neutral-300">
-                Профилна снимка *
+                Профилна снимка (по избор)
               </label>
               <input
                 type="file"
@@ -209,7 +209,6 @@ export default function AuthModal() {
                   setErr("");
                 }}
                 className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 text-white outline-none focus:border-red-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:cursor-pointer hover:file:bg-red-700"
-                required
               />
               {photoPreview && (
                 <img

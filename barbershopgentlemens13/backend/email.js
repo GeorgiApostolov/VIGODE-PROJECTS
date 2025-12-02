@@ -1,20 +1,22 @@
 import nodemailer from "nodemailer";
 
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-export const MAIL_FROM =
-  process.env.MAIL_FROM || `Barbershop <no-reply@localhost>`;
-const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || "";
+const SMTP_HOST = "mail.barbershopgentlemens13.com";
+const SMTP_PORT = 587;
+const SMTP_USER = "no-reply@barbershopgentlemens13.com";
+const SMTP_PASS = "1bg2bg3bg4bg";
+export const MAIL_FROM = "Gentlemens 13 <no-reply@barbershopgentlemens13.com>";
+const NOTIFY_EMAIL = "info@barbershopgentlemens13.com";
 
 export const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
   port: SMTP_PORT,
-  secure: SMTP_PORT === 465, // 465 -> secure true, 587 -> false
+  secure: false, // 587 -> STARTTLS
   auth: {
     user: SMTP_USER,
     pass: SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false, // Ignore certificate validation
   },
 });
 
@@ -29,7 +31,6 @@ export async function verifySmtp() {
 
 export async function sendBookingReceived({
   customerEmail,
-  notifyEmail = NOTIFY_EMAIL,
   fullName,
   phone,
   service,
@@ -56,23 +57,13 @@ export async function sendBookingReceived({
     </ul>
   `;
 
-  // клиент
+  // само email до клиента (БЕЗ вътрешно известие)
   if (customerEmail) {
     await transporter.sendMail({
       from: MAIL_FROM,
       to: customerEmail,
       subject: "Заявката е получена",
       html: `<p>Здравей! Благодарим за заявката. Ще я потвърдим скоро.</p>${details}`,
-    });
-  }
-
-  // вътрешен имейл
-  if (notifyEmail) {
-    await transporter.sendMail({
-      from: MAIL_FROM,
-      to: notifyEmail,
-      subject: "Нова заявка за час",
-      html: `<p>Имате нова заявка:</p>${details}`,
     });
   }
 }
@@ -87,7 +78,6 @@ export async function sendBookingApproved({
   await transporter.sendMail({
     from: MAIL_FROM,
     to: customerEmail,
-    bcc: NOTIFY_EMAIL || undefined,
     subject: "Заявката е потвърдена",
     html: `<p>Здравей, ${fullName || ""}!</p>
            <p>Заявката ти е потвърдена за <b>${date}</b> в <b>${time}</b>.</p>`,
@@ -111,7 +101,6 @@ export async function sendBookingRejected({
   await transporter.sendMail({
     from: MAIL_FROM,
     to: customerEmail,
-    bcc: NOTIFY_EMAIL || undefined,
     subject: "Заявката е отказана",
     html: `<p>Здравей, ${fullName || ""}!</p>
            <p>За съжаление, заявката е отказана.</p>

@@ -16,11 +16,12 @@ import { useAuth } from "../contexts/AuthContext";
 const generateTimeSlots = (
   startHour: number = 8,
   endHour: number = 20,
-  lunchBreak: boolean = true
+  lunchBreak: boolean = true,
+  interval: number = 15
 ): string[] => {
   const slots: string[] = [];
   for (let hour = startHour; hour < endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) {
+    for (let minute = 0; minute < 60; minute += interval) {
       if (lunchBreak && hour === 13) continue; // обедна пауза
       const time = `${hour.toString().padStart(2, "0")}:${minute
         .toString()
@@ -31,7 +32,7 @@ const generateTimeSlots = (
   return slots;
 };
 
-const timeSlots = generateTimeSlots(8, 20, true); // default за обща употреба
+const timeSlots = generateTimeSlots(8, 20, true, 15); // default за обща употреба
 
 export function Booking() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -54,7 +55,7 @@ export function Booking() {
     photo: null as File | null,
     comment: "",
     gdprConsent: false,
-    sendReminder: true,
+    sendReminder: false,
   });
 
   const [photoPreview, setPhotoPreview] = useState<string>("");
@@ -178,11 +179,6 @@ export function Booking() {
         setError("Моля, попълнете всички задължителни полета.");
         return;
       }
-      // Изисквай снимка само ако няма профилна
-      if (!formData.photo && !user?.profilePhoto) {
-        setError("Моля, качете снимка.");
-        return;
-      }
     }
 
     const newStep = Math.min(currentStep + 1, totalSteps);
@@ -224,13 +220,6 @@ export function Booking() {
         setUploading(false);
         return;
       }
-      // Изисквай снимка само ако няма нито качена, нито профилна
-      if (!formData.photo && !user?.profilePhoto) {
-        setError("Моля, качете снимка.");
-        setSubmitting(false);
-        setUploading(false);
-        return;
-      }
 
       const allSelectedServices = [
         formData.mainService,
@@ -251,7 +240,7 @@ export function Booking() {
         time: formData.time,
         comment: formData.comment,
         photo: formData.photo || undefined,
-        sendReminder: formData.sendReminder,
+        sendReminder: false,
         userId: user?._id,
       });
 
@@ -270,7 +259,7 @@ export function Booking() {
           photo: null,
           comment: "",
           gdprConsent: false,
-          sendReminder: true,
+          sendReminder: false,
         });
         setPhotoPreview("");
       }
@@ -330,16 +319,29 @@ export function Booking() {
       lunchBreak: true,
     };
     let startHour = workHours.start;
-    const endHour = workHours.end;
-    const lunchBreak = workHours.lunchBreak;
+    let endHour = workHours.end;
+    let lunchBreak = workHours.lunchBreak;
 
-    // Ако е сряда и има специален начален час
-    if (dayOfWeek === 3 && workHours.wednesdayStart !== undefined) {
-      startHour = workHours.wednesdayStart;
+    // Ако е сряда, работи от 12 до 20 без обедна почивка
+    if (dayOfWeek === 3) {
+      startHour = 12;
+      endHour = 20;
+      lunchBreak = false;
     }
 
+    // Проверяваме дали е Иван Кръстев за 30-минутен интервал
+    const isIvanKrastev =
+      selectedBarber.name.includes("Иван Кръстев") ||
+      selectedBarber.name.includes("Иван");
+    const interval = isIvanKrastev ? 30 : 15;
+
     // Генерираме часовете според работното време на барбъра
-    let availableSlots = generateTimeSlots(startHour, endHour, lunchBreak);
+    let availableSlots = generateTimeSlots(
+      startHour,
+      endHour,
+      lunchBreak,
+      interval
+    );
 
     return availableSlots.filter((slot) => !occupiedSlots.includes(slot));
   };
@@ -490,115 +492,155 @@ export function Booking() {
           {/* STEP 2 */}
           {currentStep === 2 && (
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white flex items-center">
-                  <Scissors className="w-6 h-6 mr-3 text-red-600" />
-                  Избери услуги
-                </h3>
-                {(formData.mainService ||
-                  formData.additionalServices.length > 0) && (
-                  <div className="text-right">
-                    <p className="text-sm text-neutral-400">Обща цена</p>
-                    <p className="text-3xl font-bold text-red-600">
-                      {getTotalPrice()} лв
+              {(() => {
+                const selectedBarber = getSelectedBarber();
+                if (
+                  selectedBarber &&
+                  (selectedBarber.name.includes("Балтов") ||
+                    selectedBarber.name.includes("Теодор Балтов"))
+                ) {
+                  return (
+                    <div className="bg-red-600/10 border border-red-600/30 rounded-lg p-6">
+                      <p className="text-white font-semibold mb-3 text-lg">
+                        📅 Без фиксиран график
+                      </p>
+                      <p className="text-neutral-300 mb-4 leading-relaxed">
+                        {selectedBarber.name} работи по свободен график и не
+                        приема онлайн резервации.
+                      </p>
+                      <div className="bg-neutral-900/50 rounded-lg p-4 border border-red-600/20">
+                        <p className="text-neutral-300 text-sm mb-2">
+                          За запазване на час, моля свържете се директно:
+                        </p>
+                        <a
+                          href="tel:0877506242"
+                          className="text-red-500 hover:text-red-400 font-bold text-xl flex items-center justify-center py-2"
+                        >
+                          📞 0877 506 242
+                        </a>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl font-bold text-white flex items-center">
+                        <Scissors className="w-6 h-6 mr-3 text-red-600" />
+                        Избери услуги
+                      </h3>
+                      {(formData.mainService ||
+                        formData.additionalServices.length > 0) && (
+                        <div className="text-right">
+                          <p className="text-sm text-neutral-400">Обща цена</p>
+                          <p className="text-3xl font-bold text-red-600">
+                            {getTotalPrice()} лв
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-neutral-400 mb-6">
+                      Можеш да избереш една или повече услуги
                     </p>
-                  </div>
-                )}
-              </div>
-              <p className="text-neutral-400 mb-6">
-                Можеш да избереш една или повече услуги
-              </p>
 
-              <div className="space-y-6">
-                {services.slice(0, 2).length > 0 && (
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-3">
-                      Избери основна услуга
-                    </h4>
-                    <div className="space-y-3">
-                      {services.slice(0, 2).map((service) => (
-                        <label
-                          key={service._id}
-                          className={`flex items-center p-5 rounded-lg border-2 transition-all cursor-pointer ${
-                            formData.mainService === service._id
-                              ? "border-red-600 bg-red-600/10"
-                              : "border-neutral-700 hover:border-red-600/50"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="mainService"
-                            checked={formData.mainService === service._id}
-                            onChange={() => selectMainService(service._id)}
-                            className="w-5 h-5 text-red-600 bg-neutral-800 border-neutral-600 focus:ring-red-600 focus:ring-2 cursor-pointer"
-                          />
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-lg font-bold text-white">
-                                {service.name}
-                              </h4>
-                              <p className="text-red-600 font-bold text-xl">
-                                {service.price} лв
-                              </p>
-                            </div>
-                            {service.description && (
-                              <p className="text-neutral-400 text-sm mt-1">
-                                {service.description}
-                              </p>
-                            )}
+                    <div className="space-y-6">
+                      {services.slice(0, 2).length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-3">
+                            Избери основна услуга
+                          </h4>
+                          <div className="space-y-3">
+                            {services.slice(0, 2).map((service) => (
+                              <label
+                                key={service._id}
+                                className={`flex items-center p-5 rounded-lg border-2 transition-all cursor-pointer ${
+                                  formData.mainService === service._id
+                                    ? "border-red-600 bg-red-600/10"
+                                    : "border-neutral-700 hover:border-red-600/50"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="mainService"
+                                  checked={formData.mainService === service._id}
+                                  onChange={() =>
+                                    selectMainService(service._id)
+                                  }
+                                  className="w-5 h-5 text-red-600 bg-neutral-800 border-neutral-600 focus:ring-red-600 focus:ring-2 cursor-pointer"
+                                />
+                                <div className="ml-4 flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="text-lg font-bold text-white">
+                                      {service.name}
+                                    </h4>
+                                    <p className="text-red-600 font-bold text-xl">
+                                      {service.price} лв
+                                    </p>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-neutral-400 text-sm mt-1">
+                                      {service.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </label>
+                            ))}
                           </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                        </div>
+                      )}
 
-                {services.slice(2).length > 0 && (
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-3">
-                      Допълнителни услуги (по избор)
-                    </h4>
-                    <div className="space-y-3">
-                      {services.slice(2).map((service) => (
-                        <label
-                          key={service._id}
-                          className={`flex items-center p-5 rounded-lg border-2 transition-all cursor-pointer ${
-                            formData.additionalServices.includes(service._id)
-                              ? "border-red-600 bg-red-600/10"
-                              : "border-neutral-700 hover:border-red-600/50"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.additionalServices.includes(
-                              service._id
-                            )}
-                            onChange={() =>
-                              toggleAdditionalService(service._id)
-                            }
-                            className="w-5 h-5 text-red-600 bg-neutral-800 border-neutral-600 rounded focus:ring-red-600 focus:ring-2 cursor-pointer"
-                          />
-                          <div className="ml-4 flex-1">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-lg font-bold text-white">
-                                {service.name}
-                              </h4>
-                              <p className="text-red-600 font-bold text-xl">
-                                {service.price} лв
-                              </p>
-                            </div>
-                            {service.description && (
-                              <p className="text-neutral-400 text-sm mt-1">
-                                {service.description}
-                              </p>
-                            )}
+                      {services.slice(2).length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-3">
+                            Допълнителни услуги (по избор)
+                          </h4>
+                          <div className="space-y-3">
+                            {services.slice(2).map((service) => (
+                              <label
+                                key={service._id}
+                                className={`flex items-center p-5 rounded-lg border-2 transition-all cursor-pointer ${
+                                  formData.additionalServices.includes(
+                                    service._id
+                                  )
+                                    ? "border-red-600 bg-red-600/10"
+                                    : "border-neutral-700 hover:border-red-600/50"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={formData.additionalServices.includes(
+                                    service._id
+                                  )}
+                                  onChange={() =>
+                                    toggleAdditionalService(service._id)
+                                  }
+                                  className="w-5 h-5 text-red-600 bg-neutral-800 border-neutral-600 rounded focus:ring-red-600 focus:ring-2 cursor-pointer"
+                                />
+                                <div className="ml-4 flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="text-lg font-bold text-white">
+                                      {service.name}
+                                    </h4>
+                                    <p className="text-red-600 font-bold text-xl">
+                                      {service.price} лв
+                                    </p>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-neutral-400 text-sm mt-1">
+                                      {service.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </label>
+                            ))}
                           </div>
-                        </label>
-                      ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 
@@ -609,6 +651,7 @@ export function Booking() {
                 <Calendar className="w-6 h-6 mr-3 text-red-600" />
                 Избери дата и час
               </h3>
+
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -745,8 +788,7 @@ export function Booking() {
                 <div>
                   <label className="block text-sm font-medium text-neutral-300 mb-2 flex items-center">
                     <Upload className="w-4 h-4 mr-2" />
-                    Качи снимка {!user?.profilePhoto && "*"} (JPG, PNG, WebP -
-                    макс. 3MB)
+                    Качи снимка (JPG, PNG, WebP - макс. 3MB)
                   </label>
 
                   {user?.profilePhoto && !formData.photo && (
@@ -787,12 +829,10 @@ export function Booking() {
                     accept="image/jpeg,image/png,image/webp"
                     onChange={handlePhotoChange}
                     className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-red-600 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:cursor-pointer hover:file:bg-red-700"
-                    required={!user?.profilePhoto}
                   />
                   <p className="text-neutral-500 text-xs mt-2">
-                    {user?.profilePhoto
-                      ? "Опционално: Качете нова снимка ако искате да използвате друга"
-                      : "Качете снимка за по-лесна идентификация от барбъра"}
+                    Опционално: Качете снимка за по-лесна идентификация от
+                    барбъра
                   </p>
 
                   {photoPreview && formData.photo && (
@@ -956,23 +996,6 @@ export function Booking() {
                     Съгласен съм с обработка на лични данни *
                   </span>
                 </label>
-
-                <label className="flex items-start">
-                  <input
-                    type="checkbox"
-                    checked={formData.sendReminder}
-                    onChange={(e) =>
-                      setFormData((p) => ({
-                        ...p,
-                        sendReminder: e.target.checked,
-                      }))
-                    }
-                    className="mt-1 mr-3 w-5 h-5 text-red-600 bg-neutral-800 border-neutral-700 rounded focus:ring-red-600"
-                  />
-                  <span className="text-sm text-neutral-300">
-                    Изпрати ми напомняне 2 часа преди часа ми
-                  </span>
-                </label>
               </div>
             </div>
           )}
@@ -995,14 +1018,36 @@ export function Booking() {
             </button>
 
             {currentStep < totalSteps ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
-              >
-                Напред
-                <ChevronRight className="w-5 h-5 ml-2" />
-              </button>
+              (() => {
+                const selectedBarber = getSelectedBarber();
+                const isBaltov =
+                  selectedBarber &&
+                  (selectedBarber.name.includes("Балтов") ||
+                    selectedBarber.name.includes("Теодор Балтов"));
+
+                if (currentStep === 2 && isBaltov) {
+                  return (
+                    <a
+                      href="/"
+                      className="flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                    >
+                      <Home className="w-5 h-5 mr-2" />
+                      Върни се на началната страница
+                    </a>
+                  );
+                }
+
+                return (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                  >
+                    Напред
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </button>
+                );
+              })()
             ) : (
               <button
                 type="button"
