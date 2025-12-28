@@ -15,7 +15,7 @@ import {
   Bell,
   Trash2,
 } from "lucide-react";
-import { api, Booking, Barber } from "../lib/api";
+import { api, Booking, Barber, DayOff } from "../lib/api";
 import Header from "../components/Header";
 
 type TabType =
@@ -80,6 +80,9 @@ export function AdminPage() {
   const [scheduleViewMode, setScheduleViewMode] = useState<"grid" | "list">(
     "grid"
   );
+  const [dayOffInfo, setDayOffInfo] = useState<DayOff | null>(null);
+  const [dayOffReason, setDayOffReason] = useState("");
+  const [dayOffLoading, setDayOffLoading] = useState(false);
 
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [rescheduleBookingId, setRescheduleBookingId] = useState<string | null>(
@@ -178,6 +181,11 @@ export function AdminPage() {
     }
   }, [isAuthenticated, activeTab]);
 
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== "schedule") return;
+    fetchDayOff();
+  }, [scheduleDate, scheduleBarber, isAuthenticated, activeTab]);
+
   const fetchData = async () => {
     setLoading(true);
     await fetchBarbers();
@@ -251,6 +259,25 @@ export function AdminPage() {
       setBookings(data);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
+    }
+  };
+
+  const fetchDayOff = async () => {
+    if (!scheduleDate) return;
+    setDayOffLoading(true);
+    try {
+      const data = await api.getDayOff({ date: scheduleDate });
+      const match =
+        data.find((d) => !d.barberId) ||
+        data.find(
+          (d) => scheduleBarber !== "all" && d.barberId === scheduleBarber
+        );
+      setDayOffInfo(match || null);
+      setDayOffReason(match?.reason || "");
+    } catch (err) {
+      console.error("Failed to fetch day off:", err);
+    } finally {
+      setDayOffLoading(false);
     }
   };
 
@@ -354,6 +381,45 @@ export function AdminPage() {
     } catch (error) {
       console.error("Error completing booking:", error);
       alert("Грешка при маркиране на заявката");
+    }
+  };
+
+  const handleSetDayOff = async () => {
+    if (!scheduleDate) return;
+    try {
+      setDayOffLoading(true);
+      const payload = {
+        date: scheduleDate,
+        barberId: scheduleBarber === "all" ? null : scheduleBarber,
+        reason: dayOffReason,
+      };
+      const created = await api.createDayOff(payload);
+      setDayOffInfo(created);
+      alert("Денят е маркиран като неработен");
+    } catch (err: any) {
+      console.error("Failed to set day off:", err);
+      alert(err?.message || "Грешка при маркиране на деня");
+    } finally {
+      setDayOffLoading(false);
+    }
+  };
+
+  const handleRemoveDayOff = async () => {
+    if (!dayOffInfo) return;
+    const confirmDelete = confirm("Премахване на неработния ден за тази дата?");
+    if (!confirmDelete) return;
+
+    try {
+      setDayOffLoading(true);
+      await api.deleteDayOff(dayOffInfo._id);
+      setDayOffInfo(null);
+      setDayOffReason("");
+      alert("Блокировката е премахната");
+    } catch (err: any) {
+      console.error("Failed to delete day off:", err);
+      alert(err?.message || "Грешка при премахване на блокировката");
+    } finally {
+      setDayOffLoading(false);
     }
   };
 
@@ -979,6 +1045,70 @@ export function AdminPage() {
                 </p>
               </div>
 
+              {/* Day Off controls */}
+              <div className="bg-neutral-900 border-2 border-red-900 rounded-lg p-4 mb-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-white font-semibold">
+                      Маркирай деня като неработен
+                    </p>
+                    <p className="text-neutral-400 text-sm">
+                      {scheduleBarber === "all"
+                        ? "Блокира всички барбъри за тази дата."
+                        : "Блокира избрания барбър за тази дата."}
+                    </p>
+                  </div>
+                  {dayOffInfo && (
+                    <span className="px-3 py-1 rounded-full bg-red-700 text-white text-sm font-semibold">
+                      Активно
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                  <div className="md:col-span-2">
+                    <input
+                      type="text"
+                      value={dayOffReason}
+                      onChange={(e) => setDayOffReason(e.target.value)}
+                      placeholder="Причина (по избор)"
+                      className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={handleSetDayOff}
+                      disabled={dayOffLoading}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-60"
+                    >
+                      Маркирай неработен ден
+                    </button>
+                    {dayOffInfo && (
+                      <button
+                        onClick={handleRemoveDayOff}
+                        disabled={dayOffLoading}
+                        className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold rounded-lg border border-neutral-700 transition-colors disabled:opacity-60"
+                      >
+                        Премахни
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {dayOffInfo && (
+                  <div className="mt-3 bg-red-900/40 border border-red-800 rounded-lg p-3">
+                    <p className="text-red-200 font-semibold">
+                      Денят е блокиран
+                    </p>
+                    {dayOffInfo.reason && (
+                      <p className="text-red-200 text-sm mt-1">
+                        Причина: {dayOffInfo.reason}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* View Mode Toggle */}
               {scheduleBarber !== "all" && (
                 <div className="flex justify-center gap-2 mb-4">
@@ -1058,6 +1188,27 @@ export function AdminPage() {
                   ["pending", "approved", "completed"].includes(b.status)
                 );
               });
+
+              const isDayOff =
+                dayOffInfo &&
+                (!dayOffInfo.barberId ||
+                  scheduleBarber === "all" ||
+                  dayOffInfo.barberId === scheduleBarber);
+
+              if (isDayOff) {
+                return (
+                  <div className="bg-neutral-900 border-2 border-red-800 rounded-lg p-6 text-center">
+                    <p className="text-white text-lg font-semibold">
+                      Денят е отбелязан като неработен
+                    </p>
+                    {dayOffInfo?.reason && (
+                      <p className="text-neutral-300 mt-2">
+                        Причина: {dayOffInfo.reason}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
 
               // Ако е избран конкретен барбър и grid mode
               if (scheduleBarber !== "all" && scheduleViewMode === "grid") {

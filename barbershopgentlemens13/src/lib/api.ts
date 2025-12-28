@@ -53,6 +53,13 @@ export interface News {
   createdAt?: string;
 }
 
+export interface DayOff {
+  _id: string;
+  date: string;
+  barberId?: string | null;
+  reason?: string;
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE || "/backend";
 
 function adminHeaders(): Record<string, string> {
@@ -295,6 +302,37 @@ export const api = {
       method: "DELETE",
     });
     if (!r.ok) throw new Error("delete news failed");
+    return r.json();
+  },
+
+  // Day Off (full-day block)
+  async getDayOff(params?: {
+    date?: string;
+    barberId?: string;
+  }): Promise<DayOff[]> {
+    const qs = new URLSearchParams(params as any).toString();
+    const r = await fetch(`${API_BASE}/dayoff${qs ? `?${qs}` : ""}`);
+    if (!r.ok) throw new Error("get day off failed");
+    return r.json();
+  },
+
+  async createDayOff(payload: {
+    date: string;
+    barberId?: string | null;
+    reason?: string;
+  }): Promise<DayOff> {
+    const r = await fetch(`${API_BASE}/dayoff`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error("create day off failed");
+    return r.json();
+  },
+
+  async deleteDayOff(id: string): Promise<{ ok: true }> {
+    const r = await fetch(`${API_BASE}/dayoff/${id}`, { method: "DELETE" });
+    if (!r.ok) throw new Error("delete day off failed");
     return r.json();
   },
 };

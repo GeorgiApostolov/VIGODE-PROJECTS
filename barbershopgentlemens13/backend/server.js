@@ -20,6 +20,7 @@ import GalleryItem from "./models/GalleryItem.js";
 import BeforeAfterItem from "./models/BeforeAfterItem.js";
 import User from "./models/User.js"; // models/User.js трябва да има поле profilePhoto
 import News from "./models/News.js";
+import DayOff from "./models/DayOff.js";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -718,6 +719,55 @@ app.post(`${BASE_PATH}/api/news`, async (req, res, next) => {
 app.delete(`${BASE_PATH}/api/news/:id`, async (req, res, next) => {
   try {
     await News.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ------------------ Day Off (Full Day Block) --------- */
+// List day offs (optional filters)
+app.get(`${BASE_PATH}/api/dayoff`, async (req, res, next) => {
+  try {
+    const { date, barberId } = req.query;
+    const filter = {};
+    if (date) filter.date = date;
+    if (barberId) {
+      filter.$or = [{ barberId }, { barberId: null }];
+    }
+    const days = await DayOff.find(filter).sort({ date: 1 }).lean();
+    res.json(days);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Create day off (block a date for all or specific barber)
+app.post(`${BASE_PATH}/api/dayoff`, async (req, res, next) => {
+  try {
+    const { date, barberId = null, reason = "" } = req.body;
+    if (!date) return res.status(400).json({ error: "Missing date" });
+
+    const doc = await DayOff.findOneAndUpdate(
+      { date, barberId: barberId || null },
+      { date, barberId: barberId || null, reason },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.status(201).json(doc);
+  } catch (e) {
+    // handle duplicate gracefully
+    if (e?.code === 11000) {
+      return res.status(200).json({ ok: true, duplicate: true });
+    }
+    next(e);
+  }
+});
+
+// Remove day off
+app.delete(`${BASE_PATH}/api/dayoff/:id`, async (req, res, next) => {
+  try {
+    await DayOff.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch (e) {
     next(e);

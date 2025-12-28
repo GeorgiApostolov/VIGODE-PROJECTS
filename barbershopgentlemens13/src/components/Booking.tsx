@@ -64,6 +64,9 @@ export function Booking() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
+  const [dayOffInfo, setDayOffInfo] = useState<{ reason?: string } | null>(
+    null
+  );
 
   const totalSteps = 5;
 
@@ -102,11 +105,16 @@ export function Booking() {
   useEffect(() => {
     if (!formData.date || !formData.barberId) {
       setOccupiedSlots([]);
+      setDayOffInfo(null);
       return;
     }
     (async () => {
       try {
-        const allBookings = await api.listBookings();
+        const [allBookings, dayOffs] = await Promise.all([
+          api.listBookings(),
+          api.getDayOff({ date: formData.date }),
+        ]);
+
         const occupiedTimes = allBookings
           .filter((booking) => {
             const barberId =
@@ -127,6 +135,16 @@ export function Booking() {
           .map((booking) => booking.time);
 
         setOccupiedSlots(occupiedTimes);
+
+        const matchDayOff = dayOffs.find(
+          (off) => !off.barberId || off.barberId === formData.barberId
+        );
+        if (matchDayOff) {
+          setDayOffInfo({ reason: matchDayOff.reason });
+          setFormData((prev) => (prev.time ? { ...prev, time: "" } : prev));
+        } else {
+          setDayOffInfo(null);
+        }
       } catch (err) {
         console.error("Failed to fetch occupied slots:", err);
       }
@@ -165,6 +183,10 @@ export function Booking() {
     if (currentStep === 3) {
       if (!formData.date || !formData.time) {
         setError("Моля, изберете дата и час.");
+        return;
+      }
+      if (dayOffInfo) {
+        setError("Денят е неработен. Моля, изберете друга дата.");
         return;
       }
       // защитна проверка – неделя не се допуска
@@ -308,6 +330,8 @@ export function Booking() {
     const dayOfWeek = selectedDate.getDay();
     const selectedBarber = getSelectedBarber();
     if (!selectedBarber) return timeSlots;
+
+    if (dayOffInfo) return [];
 
     // Неделя – няма слотове
     if (dayOfWeek === 0) return [];
@@ -679,7 +703,9 @@ export function Booking() {
                       }
                       className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-red-600 transition-colors"
                       required
-                      disabled={!formData.date}
+                      disabled={
+                        !formData.date || !!dayOffInfo || !formData.barberId
+                      }
                     >
                       <option value="">Изберете час</option>
                       {getAvailableTimeSlots().map((slot) => (
@@ -690,6 +716,19 @@ export function Booking() {
                     </select>
                   </div>
                 </div>
+
+                {dayOffInfo && (
+                  <div className="bg-red-900/40 border border-red-800 rounded-lg p-4">
+                    <p className="text-red-200 font-semibold">
+                      Денят е неработен. Моля, избери друга дата.
+                    </p>
+                    {dayOffInfo.reason && (
+                      <p className="text-red-200 text-sm mt-1">
+                        Причина: {dayOffInfo.reason}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {formData.date &&
                   formData.barberId &&
