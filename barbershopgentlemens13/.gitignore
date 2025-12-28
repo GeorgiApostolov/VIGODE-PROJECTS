@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Environment Variables (CRITICAL - Never commit these!)
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+backend/.htaccess
+
+# Production Build
+dist/
+build/
+backend/public/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Uploads & User Generated Content
+backend/uploads/
+backend/tmp/
+uploads/
+
+# Database Backups (may contain sensitive data)
+backups/
+*.sql
+*.dump
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.cache/

@@ -1,0 +1,29 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/YOUR_USER/YOUR_DOMAIN/backend"
+PassengerBaseURI "/backend"
+PassengerNodejs "/home/YOUR_USER/nodevenv/YOUR_DOMAIN/backend/20/bin/node"
+PassengerAppType node
+PassengerStartupFile server.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+SetEnv ADMIN_EMAIL your-email@example.com
+SetEnv BARBER_NOTIFY_TO your-email@example.com
+SetEnv BASE_PATH /backend
+SetEnv CLIENT_ORIGIN *
+SetEnv FROM_EMAIL noreply@yourdomain.com
+SetEnv FROM_NAME Your Barbershop Name
+SetEnv MONGO_URI mongodb+srv://username:password@cluster.mongodb.net/database
+SetEnv NOTIFY_EMAIL your-email@example.com
+SetEnv PORT 4000
+SetEnv PUBLIC_BASE_URL https://yourdomain.com
+SetEnv SMTP_HOST yourdomain.com
+SetEnv SMTP_PASS your-smtp-password
+SetEnv SMTP_PORT 587
+SetEnv SMTP_SECURE false
+SetEnv SMTP_USER noreply@yourdomain.com
+SetEnv JWT_SECRET your-long-random-jwt-secret-key
+SetEnv MAIL_FROM noreply@yourdomain.com
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END

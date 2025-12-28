@@ -1,11 +1,11 @@
 import nodemailer from "nodemailer";
 
-const SMTP_HOST = "mail.barbershopgentlemens13.com";
-const SMTP_PORT = 587;
-const SMTP_USER = "no-reply@barbershopgentlemens13.com";
-const SMTP_PASS = "1bg2bg3bg4bg";
-export const MAIL_FROM = "Gentlemens 13 <no-reply@barbershopgentlemens13.com>";
-const NOTIFY_EMAIL = "info@barbershopgentlemens13.com";
+const SMTP_HOST = process.env.SMTP_HOST || "";
+const SMTP_PORT = process.env.SMTP_PORT || 587;
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+export const MAIL_FROM = process.env.MAIL_FROM || "";
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || "";
 
 export const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
